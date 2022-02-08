@@ -1,8 +1,8 @@
-﻿using System;
+﻿#if PLUGIN
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-#if PLUGIN
 using BepInEx;
 using HarmonyLib;
 using System.Reflection;

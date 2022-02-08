@@ -1,9 +1,9 @@
-﻿using System;
+﻿#if PLUGIN
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-#if PLUGIN
 using HarmonyLib;
 
 namespace ValheimPlayerModels
