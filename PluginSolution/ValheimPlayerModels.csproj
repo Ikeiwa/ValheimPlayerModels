@@ -8,6 +8,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release;SDK</Configurations>
+    <PackageProjectUrl>https://github.com/Ikeiwa/ValheimPlayerModels</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Ikeiwa/ValheimPlayerModels</RepositoryUrl>
+    <Product>Valheim Player Models</Product>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

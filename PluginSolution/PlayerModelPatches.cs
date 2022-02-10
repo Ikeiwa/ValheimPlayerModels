@@ -15,7 +15,8 @@ namespace ValheimPlayerModels
 		[HarmonyPostfix]
 		static void Postfix(Player __instance)
         {
-            __instance.gameObject.AddComponent<PlayerModel>();
+            if(PluginConfig.enablePlayerModels.Value)
+                __instance.gameObject.AddComponent<PlayerModel>();
         }
 	}
 
@@ -25,7 +26,18 @@ namespace ValheimPlayerModels
         [HarmonyPostfix]
         static void Postfix(VisEquipment __instance)
         {
-            __instance.GetComponent<PlayerModel>()?.HideEquipments();
+            if (PluginConfig.enablePlayerModels.Value)
+                __instance.GetComponent<PlayerModel>()?.ToggleEquipments();
+        }
+    }
+
+    [HarmonyPatch(typeof(Ragdoll), "Start")]
+    static class Patch_Ragdoll_Start
+    {
+        [HarmonyPostfix]
+        static void Postfix(Ragdoll __instance)
+        {
+            Debug.LogWarning(__instance.m_nview.m_zdo.m_uid.m_userID);
         }
     }
 }
