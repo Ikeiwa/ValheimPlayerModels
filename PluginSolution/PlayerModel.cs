@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 namespace ValheimPlayerModels
 {
     [DefaultExecutionOrder(int.MaxValue-1)]
-    class PlayerModel : MonoBehaviour
+    public class PlayerModel : MonoBehaviour
     {
         public class AttachTransform
         {
@@ -128,6 +128,7 @@ namespace ValheimPlayerModels
             }
             playerName = playerName.ToLower();
 
+
             if (ZNet.instance != null)
             {
                 if (!ZNet.instance.IsServer() && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected)
@@ -168,8 +169,11 @@ namespace ValheimPlayerModels
                 yield break;
             }
 
-            if (Plugin.playerModelBundleCache.ContainsKey(playerName) && Plugin.playerModelBundleCache[playerName])
+            if (Plugin.playerModelBundleCache.ContainsKey(playerName))
             {
+                while (Plugin.playerModelBundleCache[playerName] == null)
+                { yield return null; }
+
                 avatarBundle = Plugin.playerModelBundleCache[playerName];
             }
             else
@@ -314,6 +318,8 @@ namespace ValheimPlayerModels
                     foreach (GameObject itemInstance in visEquipment.m_legItemInstances) { itemInstance?.SetActive(visible); }
                 if (visEquipment.m_chestItemInstances != null)
                     foreach (GameObject itemInstance in visEquipment.m_chestItemInstances) { itemInstance?.SetActive(visible); }
+                if (visEquipment.m_utilityItemInstances != null)
+                    foreach (GameObject itemInstance in visEquipment.m_utilityItemInstances) { itemInstance?.SetActive(visible); }
 
                 if (visible)
                 {

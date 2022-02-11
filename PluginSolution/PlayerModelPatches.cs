@@ -31,12 +31,33 @@ namespace ValheimPlayerModels
         }
     }
 
+    [HarmonyPatch(typeof(Humanoid), "OnRagdollCreated")]
+    static class Patch_Humanoid_OnRagdollCreated
+    {
+        [HarmonyPostfix]
+        static void Postfix(Humanoid __instance,Ragdoll ragdoll)
+        {
+
+        }
+    }
+
     [HarmonyPatch(typeof(Ragdoll), "Start")]
     static class Patch_Ragdoll_Start
     {
         [HarmonyPostfix]
         static void Postfix(Ragdoll __instance)
         {
+            if (__instance.gameObject.name.StartsWith("Player"))
+            {
+                if (ZNet.instance)
+                {
+                    Debug.LogWarning("ZNET ACTIVE");
+                    if (!ZNet.instance.IsServer() && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected)
+                    {
+                        Debug.LogWarning("IS ON MULTIPLAYER");
+                    }
+                }
+            }
             Debug.LogWarning(__instance.m_nview.m_zdo.m_uid.m_userID);
         }
     }

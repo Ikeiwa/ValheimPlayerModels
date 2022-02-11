@@ -18,7 +18,7 @@ namespace ValheimPlayerModels
         public static string playerModelsPath => Path.Combine(Environment.CurrentDirectory, "PlayerModels");
 
         public static Dictionary<string, string> playerModelBundlePaths { get; private set; }
-        public static Dictionary<string, AssetBundle> playerModelBundleCache;
+        public static Dictionary<string, AssetBundle> playerModelBundleCache = new Dictionary<string, AssetBundle>();
 
         private void Awake()
         {
@@ -29,7 +29,6 @@ namespace ValheimPlayerModels
             if (!Directory.Exists(playerModelsPath))
                 Directory.CreateDirectory(playerModelsPath);
 
-            playerModelBundleCache = new Dictionary<string, AssetBundle>();
             RefreshBundlePaths();
 
             var harmony = new Harmony(PluginInfo.PLUGIN_GUID+".patch");
