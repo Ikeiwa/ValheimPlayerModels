@@ -1,5 +1,6 @@
 # ValheimPlayerModels
 # [DOWNLOAD](https://github.com/Ikeiwa/ValheimPlayerModels/releases/latest/download/ValheimPlayerModels.dll)
+![preview](https://github.com/Ikeiwa/ValheimPlayerModels/blob/main/preview.png)
 # How to install
 
  1. Download and install the [BepInEx package](https://valheim.thunderstore.io/package/denikson/BepInExPack_Valheim/)
