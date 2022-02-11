@@ -22,7 +22,7 @@ namespace ValheimPlayerModels
             public Quaternion ogRotation;
         }
 
-        private Player player;
+        public Player player { get; private set; }
         private VisEquipment visEquipment;
         private GameObject ogVisual;
         private ZNetView zNetView;
@@ -72,7 +72,7 @@ namespace ValheimPlayerModels
 
         private void OnDestroy()
         {
-            if(avatarObject) Destroy(avatarObject);
+            if(!PluginConfig.enableCustomRagdoll.Value && avatarObject) Destroy(avatarObject);
             if (ogPose != null) ogPose.Dispose();
             if (pmPose != null) pmPose.Dispose();
             StopAllCoroutines();
@@ -81,7 +81,7 @@ namespace ValheimPlayerModels
 
         private void LateUpdate()
         {
-            if (playerModelLoaded && playerModelVisible)
+            if (playerModelLoaded && playerModelVisible && !dead)
             {
                 pmTranform.localPosition = Vector3.zero;
                 ogPose.GetHumanPose(ref pose);
@@ -104,7 +104,8 @@ namespace ValheimPlayerModels
                 if (player.IsDead() && !dead)
                 {
                     dead = true;
-                    Hide();
+                    if(!PluginConfig.enableCustomRagdoll.Value)
+                        Hide();
                 }
             }
         }
@@ -330,6 +331,12 @@ namespace ValheimPlayerModels
                     }
                 }
             }
+        }
+
+        public void SetupRagdoll(Ragdoll ragdoll)
+        {
+            Debug.Log($"SETUP RAGDOLL FOR {player.GetPlayerName()}");
+            ragdoll.gameObject.AddComponent<CustomRagdoll>().Setup(ogAnimator,pmAnimator);
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace ValheimPlayerModels
 {
@@ -31,34 +32,26 @@ namespace ValheimPlayerModels
         }
     }
 
-    [HarmonyPatch(typeof(Humanoid), "OnRagdollCreated")]
-    static class Patch_Humanoid_OnRagdollCreated
-    {
-        [HarmonyPostfix]
-        static void Postfix(Humanoid __instance,Ragdoll ragdoll)
-        {
-
-        }
-    }
-
     [HarmonyPatch(typeof(Ragdoll), "Start")]
     static class Patch_Ragdoll_Start
     {
         [HarmonyPostfix]
         static void Postfix(Ragdoll __instance)
         {
-            if (__instance.gameObject.name.StartsWith("Player"))
+            if (PluginConfig.enableCustomRagdoll.Value)
             {
-                if (ZNet.instance)
+                if (__instance.gameObject.name.StartsWith("Player"))
                 {
-                    Debug.LogWarning("ZNET ACTIVE");
-                    if (!ZNet.instance.IsServer() && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected)
+                    if (ZNet.instance)
                     {
-                        Debug.LogWarning("IS ON MULTIPLAYER");
+                        PlayerModel[] playerModels = Object.FindObjectsOfType<PlayerModel>();
+                        PlayerModel player = playerModels.FirstOrDefault(p =>
+                            p.player.GetZDOID().m_userID == __instance.m_nview.m_zdo.m_uid.m_userID);
+
+                        if (player) player.SetupRagdoll(__instance);
                     }
                 }
             }
-            Debug.LogWarning(__instance.m_nview.m_zdo.m_uid.m_userID);
         }
     }
 }
