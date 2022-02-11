@@ -112,6 +112,7 @@ namespace ValheimPlayerModels
 
         IEnumerator LoadAvatar()
         {
+            yield return new WaitForSecondsRealtime(0.5f);
             Plugin.RefreshBundlePaths();
 
             string playerName = "";
