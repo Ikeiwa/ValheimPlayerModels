@@ -54,5 +54,34 @@ namespace ValheimPlayerModels
             }
         }
     }
+
+    [HarmonyPatch(typeof(Terminal), "TryRunCommand")]
+    static class Patch_Terminal_TryRunCommand
+    {
+        [HarmonyPostfix]
+        static void Postfix(Terminal __instance, string text, bool silentFail = false, bool skipAllowedCheck = false)
+        {
+            string command = text.ToLower();
+            string[] param = command.Split(' ');
+            if (command.StartsWith("anim") && param.Length == 3)
+            {
+                if (Player.m_localPlayer)
+                {
+                    PlayerModel playerModel = Player.m_localPlayer.GetComponent<PlayerModel>();
+                    if (playerModel)
+                    {
+                        if (bool.TryParse(param[2], out bool valueBool))
+                            if (playerModel.SetBool(param[1], valueBool)) return;
+
+                        if (int.TryParse(param[2], out int valueInt))
+                            if (playerModel.SetInt(param[1], valueInt)) return;
+
+                        if (float.TryParse(param[2], out float valuefloat))
+                            playerModel.SetFloat(param[1], valuefloat);
+                    }
+                }
+            }
+        }
+    }
 }
 #endif

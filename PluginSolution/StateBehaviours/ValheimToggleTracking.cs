@@ -14,7 +14,6 @@ namespace ValheimPlayerModels
         public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
 #if PLUGIN
-            Debug.LogWarning($"CHANGED TRACKING TO {enableTracking}");
             PlayerModel playerModel = animator.transform.parent.GetComponent<PlayerModel>();
             if (playerModel) playerModel.enableTracking = enableTracking;
 #endif

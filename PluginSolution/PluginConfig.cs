@@ -17,6 +17,7 @@ namespace ValheimPlayerModels
         public static ConfigEntry<bool> enableCustomRagdoll;
         public static ConfigEntry<string> serverUrl;
         public static ConfigEntry<KeyCode> reloadKey;
+        public static ConfigEntry<KeyCode> actionMenuKey;
 
         public static void InitConfig(ConfigFile _config)
         {
@@ -29,6 +30,8 @@ namespace ValheimPlayerModels
                 "Player Models Server URL, keep empty for local player models only.");
             reloadKey = config.Bind("General", "ReloadKey", KeyCode.F5,
                 "The key to reload the player models.");
+            actionMenuKey = config.Bind("General", "ActionMenuKey", KeyCode.AltGr,
+                "The key to open the action menu.");
         }
     }
 }
