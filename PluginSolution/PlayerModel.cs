@@ -20,6 +20,7 @@ namespace ValheimPlayerModels
             public Transform pmAttach;
             public Vector3 ogPosition;
             public Quaternion ogRotation;
+            public Vector3 ogScale;
         }
 
         public Player player { get; private set; }
@@ -49,6 +50,13 @@ namespace ValheimPlayerModels
 
         private int lastEquipedCount = 0;
         private bool dead = false;
+        private bool requestHide;
+
+        private Dictionary<int, bool> boolParameters;
+        private Dictionary<int, int> intParameters;
+        private Dictionary<int, float> floatParameters;
+
+        public bool enableTracking = true;
 
         private void Awake()
         {
@@ -79,26 +87,62 @@ namespace ValheimPlayerModels
             //if(avatarBundle) avatarBundle.Unload(true);
         }
 
+        private void FixedUpdate()
+        {
+            if (playerModelLoaded && playerModelVisible && !dead && zNetView.IsValid())
+            {
+                ZDO zdo = zNetView.GetZDO();
+                if (!zNetView.IsOwner())
+                {
+                    foreach (KeyValuePair<int, bool> boolParameter in boolParameters)
+                    {
+                        bool boolValue = zdo.GetBool(438569 + boolParameter.Key);
+                        pmAnimator.SetBool(boolParameter.Key,boolValue);
+                    }
+                    foreach (KeyValuePair<int, int> intParameter in intParameters)
+                    {
+                        int intValue = zdo.GetInt(438569 + intParameter.Key);
+                        pmAnimator.SetInteger(intParameter.Key, intValue);
+                    }
+                    foreach (KeyValuePair<int, float> floatParameter in floatParameters)
+                    {
+                        float floatValue = zdo.GetFloat(438569 + floatParameter.Key);
+                        pmAnimator.SetFloat(floatParameter.Key, floatValue);
+                    }
+                }
+            }
+        }
+
         private void LateUpdate()
         {
             if (playerModelLoaded && playerModelVisible && !dead)
             {
-                pmTranform.localPosition = Vector3.zero;
-                ogPose.GetHumanPose(ref pose);
-                pmPose.SetHumanPose(ref pose);
+                if (enableTracking)
+                {
+                    pmTranform.localPosition = Vector3.zero;
+                    ogPose.GetHumanPose(ref pose);
+                    pmPose.SetHumanPose(ref pose);
 
-                Transform ogHips = ogAnimator.GetBoneTransform(HumanBodyBones.Hips);
+                    Transform ogHips = ogAnimator.GetBoneTransform(HumanBodyBones.Hips);
 
-                pmHips.position = new Vector3(pmHips.position.x, ogHips.position.y, pmHips.position.z);
+                    pmHips.position = new Vector3(pmHips.position.x, ogHips.position.y, pmHips.position.z);
 
-                float groundOffset = Mathf.Min(pmLeftFoot.position.y - pmTranform.position.y, pmRightFoot.position.y - pmTranform.position.y, 0);
+                    float groundOffset = Mathf.Min(pmLeftFoot.position.y - pmTranform.position.y, pmRightFoot.position.y - pmTranform.position.y, 0);
 
-                pmHips.Translate(0,-groundOffset+ footOffset, 0,Space.World);
+                    pmHips.Translate(0, -groundOffset + footOffset, 0, Space.World);
+                }
 
                 foreach (AttachTransform attachTransform in ogAttachments)
                 {
                     attachTransform.ogAttach.position = attachTransform.pmAttach.position;
                     attachTransform.ogAttach.rotation = attachTransform.pmAttach.rotation;
+                    attachTransform.ogAttach.localScale =
+                        Vector3.Scale(attachTransform.ogScale, attachTransform.pmAttach.localScale);
+                }
+
+                if (requestHide)
+                {
+                    ToggleEquipments();
                 }
 
                 if (player.IsDead() && !dead)
@@ -115,8 +159,9 @@ namespace ValheimPlayerModels
             yield return new WaitForSecondsRealtime(0.5f);
             Plugin.RefreshBundlePaths();
 
+            #region Get Player Name
+
             string playerName = "";
-            string playerId = "";
             if (Game.instance != null)
             {
                 playerName = player.GetPlayerName();
@@ -130,7 +175,11 @@ namespace ValheimPlayerModels
             }
             playerName = playerName.ToLower();
 
+            #endregion
 
+            #region Get Player Net ID
+
+            string playerId = "";
             if (ZNet.instance != null)
             {
                 if (!ZNet.instance.IsServer() && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected)
@@ -162,6 +211,10 @@ namespace ValheimPlayerModels
                 }
             }
 
+            #endregion
+
+            #region Load Asset Bundle
+
             Debug.Log("Loading " + playerName + " avatar");
 
             if (!Plugin.playerModelBundlePaths.ContainsKey(playerName))
@@ -180,7 +233,7 @@ namespace ValheimPlayerModels
             }
             else
             {
-                if(!Plugin.playerModelBundleCache.ContainsKey(playerName))
+                if (!Plugin.playerModelBundleCache.ContainsKey(playerName))
                     Plugin.playerModelBundleCache.Add(playerName, null);
 
                 AssetBundleCreateRequest bundleRequest =
@@ -197,7 +250,10 @@ namespace ValheimPlayerModels
 
                 Plugin.playerModelBundleCache[playerName] = avatarBundle;
             }
-            
+
+            #endregion
+
+            #region Load Avatar Object
 
             GameObject avatarAsset = avatarBundle.LoadAsset<GameObject>("_avatar");
             if (!avatarAsset)
@@ -209,6 +265,58 @@ namespace ValheimPlayerModels
 
             avatarObject = Instantiate(avatarAsset);
             avatarDescriptor = avatarObject.GetComponent<ValheimAvatarDescriptor>();
+            pmAnimator = avatarObject.GetComponent<Animator>();
+
+            #region Import Parameters
+
+            avatarDescriptor.Validate();
+
+            boolParameters = new Dictionary<int, bool>();
+            intParameters = new Dictionary<int, int>();
+            floatParameters = new Dictionary<int, float>();
+
+            if (avatarDescriptor.boolParameters != null)
+            {
+                for (int i = 0; i < avatarDescriptor.boolParameters.Count; i++)
+                {
+                    int hash = Animator.StringToHash(avatarDescriptor.boolParameters[i]);
+                    if (!boolParameters.ContainsKey(hash))
+                    {
+                        boolParameters.Add(hash, avatarDescriptor.boolParametersDefault[i]);
+                        pmAnimator.SetBool(hash, avatarDescriptor.boolParametersDefault[i]);
+                    }
+                }
+            }
+
+            if (avatarDescriptor.intParameters != null)
+            {
+                for (int i = 0; i < avatarDescriptor.intParameters.Count; i++)
+                {
+                    int hash = Animator.StringToHash(avatarDescriptor.intParameters[i]);
+                    if (!intParameters.ContainsKey(hash))
+                    {
+                        intParameters.Add(hash, avatarDescriptor.intParametersDefault[i]);
+                        pmAnimator.SetInteger(hash, avatarDescriptor.intParametersDefault[i]);
+                    }
+                }
+            }
+
+            if (avatarDescriptor.floatParameters != null)
+            {
+                for (int i = 0; i < avatarDescriptor.floatParameters.Count; i++)
+                {
+                    int hash = Animator.StringToHash(avatarDescriptor.floatParameters[i]);
+                    if (!floatParameters.ContainsKey(hash))
+                    {
+                        floatParameters.Add(hash, avatarDescriptor.floatParametersDefault[i]);
+                        pmAnimator.SetFloat(hash, avatarDescriptor.floatParametersDefault[i]);
+                    }
+                }
+            }
+
+            #endregion
+
+            #region Convert Material Shaders
 
             Renderer[] renderers = avatarObject.GetComponentsInChildren<Renderer>();
             foreach (Renderer renderer in renderers)
@@ -218,7 +326,7 @@ namespace ValheimPlayerModels
                     if (mat && mat.shader.name == "Valheim/Standard")
                     {
                         mat.shader = Shader.Find("Custom/Player");
-                        
+
                         var mainTex = mat.HasProperty("_MainTex") ? mat.GetTexture("_MainTex") as Texture2D : null;
                         var bumpMap = mat.HasProperty("_BumpMap") ? mat.GetTexture("_BumpMap") : null;
 
@@ -231,8 +339,14 @@ namespace ValheimPlayerModels
                     }
                 }
             }
+
+            #endregion
+
             pmTranform = avatarObject.transform;
-            pmTranform.SetParent(transform,false);
+            pmTranform.SetParent(transform, false);
+
+            #endregion
+
             ApplyAvatar();
             playerModelLoaded = true;
         }
@@ -244,13 +358,13 @@ namespace ValheimPlayerModels
                 ogAttach = attach,
                 pmAttach = newAttach,
                 ogPosition = attach.localPosition,
-                ogRotation = attach.localRotation
+                ogRotation = attach.localRotation,
+                ogScale = attach.localScale
             });
         }
 
         private void ApplyAvatar()
         {
-            pmAnimator = avatarObject.GetComponent<Animator>();
             pmAnimator.applyRootMotion = true;
             pmAnimator.updateMode = ogAnimator.updateMode;
             pmAnimator.feetPivotActive = ogAnimator.feetPivotActive;
@@ -284,13 +398,13 @@ namespace ValheimPlayerModels
         {
             pmAnimator?.gameObject.SetActive(visible);
 
-            ToggleEquipments(!visible);
-
             foreach (SkinnedMeshRenderer skinnedMeshRenderer in ogVisual.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
                 skinnedMeshRenderer.forceRenderingOff = visible;
                 skinnedMeshRenderer.updateWhenOffscreen = true;
             }
+
+            ToggleEquipments(!visible);
 
             playerModelVisible = visible;
         }
@@ -308,14 +422,32 @@ namespace ValheimPlayerModels
 
         public void ToggleEquipments(bool visible = false)
         {
+            if (!playerModelLoaded)
+            {
+                requestHide = true;
+                return;
+            }
+
             if (visEquipment)
             {
                 visEquipment.m_beardItemInstance?.SetActive(visible);
                 visEquipment.m_hairItemInstance?.SetActive(visible);
-                visEquipment.m_helmetItemInstance?.SetActive(visible);
+                visEquipment.m_helmetItemInstance?.SetActive(visible || avatarDescriptor.showHelmet);
 
                 if(visEquipment.m_shoulderItemInstances != null)
-                    foreach (GameObject itemInstance in visEquipment.m_shoulderItemInstances) { itemInstance?.SetActive(visible); }
+                    foreach (GameObject itemInstance in visEquipment.m_shoulderItemInstances)
+                    {
+                        if (visEquipment.m_shoulderItem.ToLower().Contains("cape"))
+                        {
+                            itemInstance?.SetActive(visible || avatarDescriptor.showCape);
+                            foreach (SkinnedMeshRenderer skinnedMeshRenderer in itemInstance.GetComponentsInChildren<SkinnedMeshRenderer>())
+                            {
+                                skinnedMeshRenderer.forceRenderingOff = visible;
+                                skinnedMeshRenderer.updateWhenOffscreen = true;
+                            }
+                        }
+                        else itemInstance?.SetActive(visible);
+                    }
                 if (visEquipment.m_legItemInstances != null)
                     foreach (GameObject itemInstance in visEquipment.m_legItemInstances) { itemInstance?.SetActive(visible); }
                 if (visEquipment.m_chestItemInstances != null)
@@ -331,14 +463,60 @@ namespace ValheimPlayerModels
                         attachTransform.ogAttach.localRotation = attachTransform.ogRotation;
                     }
                 }
+
+                requestHide = false;
             }
         }
 
         public void SetupRagdoll(Ragdoll ragdoll)
         {
-            Debug.Log($"SETUP RAGDOLL FOR {player.GetPlayerName()}");
             ragdoll.gameObject.AddComponent<CustomRagdoll>().Setup(ogAnimator,pmAnimator);
         }
+
+        #region Animator Params Methods
+
+        public bool SetBool(string name, bool value)
+        {
+            int hash = Animator.StringToHash(name);
+            if (!boolParameters.ContainsKey(hash)) return false;
+
+            boolParameters[hash] = value;
+            if (pmAnimator.GetBool(hash) == boolParameters[hash]) return true;
+
+            pmAnimator.SetBool(hash, value);
+            if (zNetView.GetZDO() != null && zNetView.IsOwner())
+                zNetView.GetZDO().Set(438569 + hash, value);
+            return true;
+        }
+
+        public bool SetInt(string name, int value)
+        {
+            int hash = Animator.StringToHash(name);
+            if (!intParameters.ContainsKey(hash)) return false;
+
+            intParameters[hash] = value;
+            if (pmAnimator.GetInteger(hash) == intParameters[hash]) return true;
+
+            pmAnimator.SetInteger(hash, value);
+            if (zNetView.GetZDO() != null && zNetView.IsOwner())
+                zNetView.GetZDO().Set(438569 + hash, value);
+            return true;
+        }
+
+        public bool SetFloat(string name, float value)
+        {
+            int hash = Animator.StringToHash(name);
+            if (!floatParameters.ContainsKey(hash)) return false;
+
+            floatParameters[hash] = value;
+            if (Mathf.Abs(floatParameters[hash] - value) < 0.01f) return true;
+
+            pmAnimator.SetFloat(hash, value);
+            if (zNetView.GetZDO() != null && zNetView.IsOwner())
+                zNetView.GetZDO().Set(438569 + hash, value);
+            return true;
+        }
+        #endregion
     }
 }
 #endif
