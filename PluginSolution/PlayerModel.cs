@@ -144,17 +144,14 @@ namespace ValheimPlayerModels
                         {
                             case ParameterType.Bool:
                                 bool boolValue = zdo.GetBool(438569 + avatarParameter.Key);
-                                Debug.LogWarning($"{avatarParameter.Key} : {boolValue}");
                                 pmAnimator.SetBool(avatarParameter.Key, boolValue);
                                 break;
                             case ParameterType.Int:
                                 int intValue = zdo.GetInt(438569 + avatarParameter.Key);
-                                Debug.LogWarning($"{avatarParameter.Key} : {intValue}");
                                 pmAnimator.SetInteger(avatarParameter.Key, intValue);
                                 break;
                             case ParameterType.Float:
                                 float floatValue = zdo.GetFloat(438569 + avatarParameter.Key);
-                                Debug.LogWarning($"{avatarParameter.Key} : {floatValue}");
                                 pmAnimator.SetFloat(avatarParameter.Key, floatValue);
                                 break;
                             default:
