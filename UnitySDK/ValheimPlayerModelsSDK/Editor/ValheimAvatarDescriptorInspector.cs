@@ -1,16 +1,77 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using ValheimPlayerModels;
 using UnityEditor.SceneManagement;
 using System.IO;
+using NUnit.Framework.Api;
 
 [CustomEditor(typeof(ValheimAvatarDescriptor))]
 public class ValheimAvatarDescriptorInspector : Editor
 {
+    private SerializedProperty avatarName;
+
+    private SerializedProperty leftHand;
+    private SerializedProperty rightHand;
+    private SerializedProperty helmet;
+    private SerializedProperty backShield;
+    private SerializedProperty backMelee;
+    private SerializedProperty backTwohandedMelee;
+    private SerializedProperty backBow;
+    private SerializedProperty backTool;
+    private SerializedProperty backAtgeir;
+
+    private SerializedProperty showHelmet;
+    private SerializedProperty showCape;
+
+    private SerializedProperty boolParameters;
+    private SerializedProperty boolParametersDefault;
+    private SerializedProperty intParameters;
+    private SerializedProperty intParametersDefault;
+    private SerializedProperty floatParameters;
+    private SerializedProperty floatParametersDefault;
+
+    private SerializedProperty controlName;
+    private SerializedProperty controlTypes;
+    private SerializedProperty controlParameterNames;
+    private SerializedProperty controlValues;
+
+    private void OnEnable()
+    {
+        avatarName = serializedObject.FindProperty("avatarName");
+
+        leftHand = serializedObject.FindProperty("leftHand");
+        rightHand = serializedObject.FindProperty("rightHand");
+        helmet = serializedObject.FindProperty("helmet");
+        backShield = serializedObject.FindProperty("backShield");
+        backMelee = serializedObject.FindProperty("backMelee");
+        backTwohandedMelee = serializedObject.FindProperty("backTwohandedMelee");
+        backBow = serializedObject.FindProperty("backBow");
+        backTool = serializedObject.FindProperty("backTool");
+        backAtgeir = serializedObject.FindProperty("backAtgeir");
+
+        showHelmet = serializedObject.FindProperty("showHelmet");
+        showCape = serializedObject.FindProperty("showCape");
+
+        boolParameters = serializedObject.FindProperty("boolParameters");
+        boolParametersDefault = serializedObject.FindProperty("boolParametersDefault");
+        intParameters = serializedObject.FindProperty("intParameters");
+        intParametersDefault = serializedObject.FindProperty("intParametersDefault");
+        floatParameters = serializedObject.FindProperty("floatParameters");
+        floatParametersDefault = serializedObject.FindProperty("floatParametersDefault");
+
+        controlName = serializedObject.FindProperty("controlName");
+        controlTypes = serializedObject.FindProperty("controlTypes");
+        controlParameterNames = serializedObject.FindProperty("controlParameterNames");
+        controlValues = serializedObject.FindProperty("controlValues");
+    }
+
     public override void OnInspectorGUI()
     {
+        serializedObject.Update();
+
         EditorGUILayout.HelpBox("It's recommended to use the \"Valheim/Standard\" shader\non the avatar or you'll get weird results.", MessageType.Info);
 
         ValheimAvatarDescriptor descriptor = (ValheimAvatarDescriptor)target;
@@ -138,8 +199,6 @@ public class ValheimAvatarDescriptorInspector : Editor
 
         GUI.enabled = valid;
 
-
-
         if (GUILayout.Button("Export"))
         {
             string path = EditorUtility.SaveFilePanel("Save object file", "", descriptor.avatarName + ".valavtr", "valavtr");
@@ -186,8 +245,6 @@ public class ValheimAvatarDescriptorInspector : Editor
                 File.Move(Application.temporaryCachePath + "/" + fileName, path);
                 AssetDatabase.Refresh();
                 EditorUtility.DisplayDialog("Exportation Successful!", "Exportation Successful!", "OK");
-
-
             }
             else
             {
@@ -197,7 +254,38 @@ public class ValheimAvatarDescriptorInspector : Editor
         }
 
         GUI.enabled = true;
-        DrawDefaultInspector();
+
+        EditorGUILayout.LabelField("Infos", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(avatarName);
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Attachment points", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(leftHand);
+        EditorGUILayout.PropertyField(rightHand);
+        EditorGUILayout.PropertyField(helmet);
+        EditorGUILayout.PropertyField(backShield);
+        EditorGUILayout.PropertyField(backMelee);
+        EditorGUILayout.PropertyField(backTwohandedMelee);
+        EditorGUILayout.PropertyField(backBow);
+        EditorGUILayout.PropertyField(backTool);
+        EditorGUILayout.PropertyField(backAtgeir);
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Show Features", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(showHelmet);
+        EditorGUILayout.PropertyField(showCape);
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Parameters", EditorStyles.boldLabel);
+        DrawListAsDictionary(boolParameters,boolParametersDefault, "param_");
+        DrawListAsDictionary(intParameters,intParametersDefault, "param_");
+        DrawListAsDictionary(floatParameters,floatParametersDefault, "param_");
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Menu", EditorStyles.boldLabel);
+        DrawCombinedLists(new string[]{"Name","Type","Parameter name","Value"}, 75,controlName,controlTypes,controlParameterNames,controlValues);
+
+        serializedObject.ApplyModifiedProperties();
     }
 
     private void AddPreview(Transform parent, string previewName)
@@ -206,5 +294,128 @@ public class ValheimAvatarDescriptorInspector : Editor
         preview.transform.SetParent(parent,true);
         preview.transform.localPosition = Vector3.zero;
         preview.transform.localRotation = Quaternion.identity;
+    }
+
+    private void DrawListAsDictionary(SerializedProperty keyList, SerializedProperty valueList, string defaultName)
+    {
+        if (valueList.arraySize != keyList.arraySize)
+        {
+            valueList.arraySize = keyList.arraySize;
+        }
+
+        EditorGUILayout.PropertyField(keyList,false);
+        
+        if (keyList.isExpanded)
+        {
+            EditorGUI.indentLevel += 1;
+
+            for (int i = 0; i < keyList.arraySize; i++)
+            {
+                for (int j = 0; j < keyList.arraySize; j++)
+                {
+                    if (j != i && keyList.GetArrayElementAtIndex(j).stringValue == keyList.GetArrayElementAtIndex(i).stringValue)
+                    {
+                        EditorGUILayout.HelpBox("A Parameter with the same name already exists.", MessageType.Error);
+                        break;
+                    }
+                }
+
+                EditorGUILayout.BeginHorizontal();
+
+                EditorGUILayout.PropertyField(keyList.GetArrayElementAtIndex(i), GUIContent.none);
+                EditorGUILayout.PropertyField(valueList.GetArrayElementAtIndex(i), GUIContent.none);
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUI.indentLevel -= 1;
+
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("+"))
+            {
+                keyList.InsertArrayElementAtIndex(keyList.arraySize);
+                valueList.InsertArrayElementAtIndex(valueList.arraySize);
+
+                int count = 0;
+                bool exists = false;
+                do
+                {
+                    exists = false;
+                    for (int i = 0; i < keyList.arraySize; i++)
+                    {
+                        if (keyList.GetArrayElementAtIndex(i).stringValue == defaultName + count)
+                        {
+                            exists = true;
+                            count++;
+                            break;
+                        }
+                    }
+                } while (exists);
+
+                keyList.GetArrayElementAtIndex(keyList.arraySize - 1).stringValue = defaultName + count;
+            }
+
+            if (GUILayout.Button("-"))
+            {
+                if (keyList.arraySize > 0)
+                {
+                    keyList.DeleteArrayElementAtIndex(keyList.arraySize - 1);
+                    valueList.DeleteArrayElementAtIndex(valueList.arraySize - 1);
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+
+    private void DrawCombinedLists(string[] labels, float labelWidth, params SerializedProperty[] lists)
+    {
+        EditorGUILayout.PropertyField(lists[0], false);
+
+        if (lists[0].isExpanded)
+        {
+            EditorGUI.indentLevel += 1;
+
+            for (int i = 0; i < lists[0].arraySize; i++)
+            {
+                EditorGUILayout.BeginVertical("Box");
+
+                for (int j = 0; j < lists.Length; j++)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField(labels[j], GUILayout.MaxWidth(labelWidth));
+                    EditorGUILayout.PropertyField(lists[j].GetArrayElementAtIndex(i),GUIContent.none);
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                EditorGUILayout.EndVertical();
+            }
+
+            EditorGUI.indentLevel -= 1;
+
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("+"))
+            {
+                for (int j = 0; j < lists.Length; j++)
+                {
+                    lists[j].InsertArrayElementAtIndex(lists[j].arraySize);
+                }
+            }
+
+            if (GUILayout.Button("-"))
+            {
+                if (lists[0].arraySize > 0)
+                {
+                    for (int j = 0; j < lists.Length; j++)
+                    {
+                        lists[j].DeleteArrayElementAtIndex(lists[j].arraySize-1);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
     }
 }

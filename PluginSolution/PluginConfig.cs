@@ -16,8 +16,8 @@ namespace ValheimPlayerModels
         public static ConfigEntry<bool> enablePlayerModels;
         public static ConfigEntry<bool> enableCustomRagdoll;
         public static ConfigEntry<string> serverUrl;
-        public static ConfigEntry<KeyCode> reloadKey;
-        public static ConfigEntry<KeyCode> actionMenuKey;
+        public static ConfigEntry<BepInEx.Configuration.KeyboardShortcut> reloadKey;
+        public static ConfigEntry<BepInEx.Configuration.KeyboardShortcut> actionMenuKey;
 
         public static void InitConfig(ConfigFile _config)
         {
@@ -28,9 +28,9 @@ namespace ValheimPlayerModels
                 "Toggle the use of custom player models for ragdolls.");
             serverUrl = config.Bind("General", "ServerURL", "",
                 "Player Models Server URL, keep empty for local player models only.");
-            reloadKey = config.Bind("General", "ReloadKey", KeyCode.F5,
+            reloadKey = config.Bind("General", "ReloadKey", new KeyboardShortcut(KeyCode.F5),
                 "The key to reload the player models.");
-            actionMenuKey = config.Bind("General", "ActionMenuKey", KeyCode.AltGr,
+            actionMenuKey = config.Bind("General", "ActionMenuKey", new KeyboardShortcut(KeyCode.G),
                 "The key to open the action menu.");
         }
     }

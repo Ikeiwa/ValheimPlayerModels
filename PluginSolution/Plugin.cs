@@ -39,7 +39,7 @@ namespace ValheimPlayerModels
 
         private void Update()
         {
-            if (Input.GetKeyDown(PluginConfig.reloadKey.Value))
+            if (PluginConfig.reloadKey.Value.IsDown())
             {
                 if (PluginConfig.enablePlayerModels.Value)
                 {

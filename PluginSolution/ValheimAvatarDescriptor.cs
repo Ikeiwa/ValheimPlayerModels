@@ -15,8 +15,9 @@ namespace ValheimPlayerModels
 
     public class ValheimAvatarDescriptor : MonoBehaviour
     {
-        [Header("Infos")] public string avatarName = "player";
-        [Header("Attachment points")] public Transform leftHand;
+        public string avatarName = "player";
+
+        public Transform leftHand;
         public Transform rightHand;
         public Transform helmet;
         public Transform backShield;
@@ -25,18 +26,18 @@ namespace ValheimPlayerModels
         public Transform backBow;
         public Transform backTool;
         public Transform backAtgeir;
-        [Space] 
+
         public bool showHelmet;
         public bool showCape;
-        [Header("Parameters")] 
-        [Space] 
+
         public List<string> boolParameters;
         public List<bool> boolParametersDefault;
         public List<string> intParameters;
         public List<int> intParametersDefault;
         public List<string> floatParameters;
         public List<float> floatParametersDefault;
-        [Header("Menu")] 
+
+        public string[] controlName;
         public ControlType[] controlTypes;
         public string[] controlParameterNames;
         public float[] controlValues;
@@ -75,16 +76,14 @@ namespace ValheimPlayerModels
             if (floatParametersDefault.Count != floatParameters.Count)
                 floatParametersDefault.Resize(floatParameters.Count);
 
-            if (controlParameterNames.Length != controlTypes.Length)
-                Array.Resize(ref controlParameterNames, controlTypes.Length);
+            if (controlTypes.Length != controlName.Length)
+                Array.Resize(ref controlTypes, controlName.Length);
 
-            if (controlValues.Length != controlTypes.Length)
-                Array.Resize(ref controlValues, controlTypes.Length);
-        }
+            if (controlParameterNames.Length != controlName.Length)
+                Array.Resize(ref controlParameterNames, controlName.Length);
 
-        void OnValidate()
-        {
-            Validate();
+            if (controlValues.Length != controlName.Length)
+                Array.Resize(ref controlValues, controlName.Length);
         }
     }
 }

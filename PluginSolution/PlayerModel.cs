@@ -23,6 +23,29 @@ namespace ValheimPlayerModels
             public Vector3 ogScale;
         }
 
+        public enum ParameterType
+        {
+            Bool,
+            Int,
+            Float
+        }
+
+        public class AvatarParameter
+        {
+            public ParameterType type;
+            public bool boolValue;
+            public int intValue;
+            public float floatValue;
+        }
+
+        public class MenuControl
+        {
+            public string name;
+            public ControlType type;
+            public string parameter;
+            public float value;
+        }
+
         public Player player { get; private set; }
         private VisEquipment visEquipment;
         private GameObject ogVisual;
@@ -51,12 +74,22 @@ namespace ValheimPlayerModels
         private int lastEquipedCount = 0;
         private bool dead = false;
         private bool requestHide;
+        
+        private Dictionary<int, AvatarParameter> parameters;
+        private List<MenuControl> menuControls;
 
-        private Dictionary<int, bool> boolParameters;
-        private Dictionary<int, int> intParameters;
-        private Dictionary<int, float> floatParameters;
+
+        private bool showMenu;
+        private Rect windowRect;
+        private CursorLockMode oldCursorLockState = CursorLockMode.Confined;
+        private bool oldCursorVisible = false;
+        private const int WindowId = -48;
+        private Vector2 actionMenuWindowScrollPos;
+        private int hasChangedParam = 0;
 
         public bool enableTracking = true;
+
+        #region Unity Events
 
         private void Awake()
         {
@@ -73,18 +106,29 @@ namespace ValheimPlayerModels
             StartCoroutine(LoadAvatar());
         }
 
-        public void Unload()
-        {
-            if(avatarBundle) avatarBundle.Unload(true);
-        }
-
         private void OnDestroy()
         {
-            if(!PluginConfig.enableCustomRagdoll.Value && avatarObject) Destroy(avatarObject);
+            if (!PluginConfig.enableCustomRagdoll.Value && avatarObject) Destroy(avatarObject);
             if (ogPose != null) ogPose.Dispose();
             if (pmPose != null) pmPose.Dispose();
             StopAllCoroutines();
-            //if(avatarBundle) avatarBundle.Unload(true);
+        }
+
+        private void Update()
+        {
+            if (PluginConfig.actionMenuKey.Value.IsDown())
+            {
+                if (Player.m_localPlayer == player)
+                {
+                    showMenu = !showMenu;
+                    if (showMenu)
+                    {
+                        SetUnlockCursor();
+                        GUI.FocusWindow(WindowId);
+                    }
+                    else ResetCursor();
+                }
+            }
         }
 
         private void FixedUpdate()
@@ -94,20 +138,28 @@ namespace ValheimPlayerModels
                 ZDO zdo = zNetView.GetZDO();
                 if (!zNetView.IsOwner())
                 {
-                    foreach (KeyValuePair<int, bool> boolParameter in boolParameters)
+                    foreach (KeyValuePair<int, AvatarParameter> avatarParameter in parameters)
                     {
-                        bool boolValue = zdo.GetBool(438569 + boolParameter.Key);
-                        pmAnimator.SetBool(boolParameter.Key,boolValue);
-                    }
-                    foreach (KeyValuePair<int, int> intParameter in intParameters)
-                    {
-                        int intValue = zdo.GetInt(438569 + intParameter.Key);
-                        pmAnimator.SetInteger(intParameter.Key, intValue);
-                    }
-                    foreach (KeyValuePair<int, float> floatParameter in floatParameters)
-                    {
-                        float floatValue = zdo.GetFloat(438569 + floatParameter.Key);
-                        pmAnimator.SetFloat(floatParameter.Key, floatValue);
+                        switch (avatarParameter.Value.type)
+                        {
+                            case ParameterType.Bool:
+                                bool boolValue = zdo.GetBool(438569 + avatarParameter.Key);
+                                Debug.LogWarning($"{avatarParameter.Key} : {boolValue}");
+                                pmAnimator.SetBool(avatarParameter.Key, boolValue);
+                                break;
+                            case ParameterType.Int:
+                                int intValue = zdo.GetInt(438569 + avatarParameter.Key);
+                                Debug.LogWarning($"{avatarParameter.Key} : {intValue}");
+                                pmAnimator.SetInteger(avatarParameter.Key, intValue);
+                                break;
+                            case ParameterType.Float:
+                                float floatValue = zdo.GetFloat(438569 + avatarParameter.Key);
+                                Debug.LogWarning($"{avatarParameter.Key} : {floatValue}");
+                                pmAnimator.SetFloat(avatarParameter.Key, floatValue);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
                     }
                 }
             }
@@ -148,11 +200,163 @@ namespace ValheimPlayerModels
                 if (player.IsDead() && !dead)
                 {
                     dead = true;
-                    if(!PluginConfig.enableCustomRagdoll.Value)
+                    if (!PluginConfig.enableCustomRagdoll.Value)
                         Hide();
                 }
             }
+
+            if (showMenu)
+            {
+                SetUnlockCursor();
+                if(hasChangedParam > 0)
+                    hasChangedParam--;
+            }
         }
+
+        private void OnGUI()
+        {
+            if (showMenu)
+            {
+                SetUnlockCursor();
+
+                windowRect = new Rect(Screen.width, Screen.height, 250, 400);
+                windowRect.x -= windowRect.width;
+                windowRect.y -= windowRect.height;
+
+                if (GUI.Button(new Rect(0, 0, Screen.width, Screen.height), string.Empty, GUIStyle.none) &&
+                    !windowRect.Contains(Input.mousePosition) || Input.GetKeyDown(KeyCode.Escape))
+                {
+                    showMenu = false;
+                    ResetCursor();
+                }
+
+                GUI.Box(windowRect, GUIContent.none);
+                GUILayout.Window(WindowId, windowRect, ActionMenuWindow, "Action Menu");
+
+                Input.ResetInputAxes();
+            }
+        }
+
+        private void ActionMenuWindow(int id)
+        {
+            actionMenuWindowScrollPos = GUILayout.BeginScrollView(actionMenuWindowScrollPos, false, true);
+
+            var scrollPosition = actionMenuWindowScrollPos.y;
+            var scrollHeight = windowRect.height;
+
+            GUILayout.BeginVertical();
+            {
+                float controlHeight = 21;
+                float currentHeight = 0;
+
+                for (int i = 0; i < menuControls.Count; i++)
+                {
+                    int paramId = Animator.StringToHash(menuControls[i].parameter);
+
+                    if (string.IsNullOrEmpty(menuControls[i].name) ||
+                        string.IsNullOrEmpty(menuControls[i].parameter) ||
+                        !parameters.ContainsKey(paramId)) continue;
+
+                    var visible = controlHeight == 0 || currentHeight + controlHeight >= scrollPosition && currentHeight <= scrollPosition + scrollHeight;
+
+                    if (visible)
+                    {
+                        try
+                        {
+                            GUILayout.BeginHorizontal(GUI.skin.box);
+                            GUILayout.Label(menuControls[i].name);
+
+                            float parameterValue = GetParameterValue(paramId);
+
+                            switch (menuControls[i].type)
+                            {
+                                case ControlType.Button:
+                                    if (GUILayout.Button("Press"))
+                                    {
+                                        if (parameterValue == 0)
+                                        {
+                                            SetParameterValue(paramId,menuControls[i].value);
+                                            hasChangedParam = 5;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (parameterValue != 0)
+                                        {
+                                            if (hasChangedParam <= 0)
+                                            {
+                                                SetParameterValue(paramId, 0);
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case ControlType.Toggle:
+                                    bool menuToggleValue = parameterValue != 0;
+
+                                    bool toggleValue = GUILayout.Toggle(menuToggleValue, string.Empty);
+                                    if (toggleValue != menuToggleValue)
+                                    {
+                                        SetParameterValue(paramId, toggleValue ? menuControls[i].value : 0);
+                                    }
+                                    break;
+                                case ControlType.Slider:
+
+                                    float sliderValue = GUILayout.HorizontalSlider(parameterValue, 0.0f, 1.0f);
+                                    if (Mathf.Abs(sliderValue - parameterValue) > 0.01f)
+                                    {
+                                        SetParameterValue(paramId,sliderValue);
+                                    }
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }
+
+                            GUILayout.EndHorizontal();
+                        }
+                        catch (ArgumentException) { }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            GUILayout.Space(controlHeight);
+                        }
+                        catch (ArgumentException) { }
+                    }
+
+                    currentHeight += controlHeight;
+                }
+
+                GUILayout.Space(70);
+            }
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+        }
+
+        #endregion
+
+        #region Utility Methods
+
+        private void SetUnlockCursor()
+        {
+            if (Cursor.lockState == CursorLockMode.None) return;
+
+            oldCursorLockState = Cursor.lockState;
+            oldCursorVisible = Cursor.visible;
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        private void ResetCursor()
+        {
+            Cursor.lockState = oldCursorLockState;
+            Cursor.visible = oldCursorVisible;
+        }
+
+        #endregion
+
+        #region avatar methods
 
         IEnumerator LoadAvatar()
         {
@@ -271,18 +475,16 @@ namespace ValheimPlayerModels
 
             avatarDescriptor.Validate();
 
-            boolParameters = new Dictionary<int, bool>();
-            intParameters = new Dictionary<int, int>();
-            floatParameters = new Dictionary<int, float>();
+            parameters = new Dictionary<int, AvatarParameter>();
 
             if (avatarDescriptor.boolParameters != null)
             {
                 for (int i = 0; i < avatarDescriptor.boolParameters.Count; i++)
                 {
                     int hash = Animator.StringToHash(avatarDescriptor.boolParameters[i]);
-                    if (!boolParameters.ContainsKey(hash))
+                    if (!parameters.ContainsKey(hash))
                     {
-                        boolParameters.Add(hash, avatarDescriptor.boolParametersDefault[i]);
+                        parameters.Add(hash, new AvatarParameter{type = ParameterType.Bool, boolValue = avatarDescriptor.boolParametersDefault[i]});
                         pmAnimator.SetBool(hash, avatarDescriptor.boolParametersDefault[i]);
                     }
                 }
@@ -293,9 +495,9 @@ namespace ValheimPlayerModels
                 for (int i = 0; i < avatarDescriptor.intParameters.Count; i++)
                 {
                     int hash = Animator.StringToHash(avatarDescriptor.intParameters[i]);
-                    if (!intParameters.ContainsKey(hash))
+                    if (!parameters.ContainsKey(hash))
                     {
-                        intParameters.Add(hash, avatarDescriptor.intParametersDefault[i]);
+                        parameters.Add(hash, new AvatarParameter { type = ParameterType.Int, intValue = avatarDescriptor.intParametersDefault[i] });
                         pmAnimator.SetInteger(hash, avatarDescriptor.intParametersDefault[i]);
                     }
                 }
@@ -306,11 +508,31 @@ namespace ValheimPlayerModels
                 for (int i = 0; i < avatarDescriptor.floatParameters.Count; i++)
                 {
                     int hash = Animator.StringToHash(avatarDescriptor.floatParameters[i]);
-                    if (!floatParameters.ContainsKey(hash))
+                    if (!parameters.ContainsKey(hash))
                     {
-                        floatParameters.Add(hash, avatarDescriptor.floatParametersDefault[i]);
+                        parameters.Add(hash, new AvatarParameter { type = ParameterType.Float, floatValue = avatarDescriptor.floatParametersDefault[i] });
                         pmAnimator.SetFloat(hash, avatarDescriptor.floatParametersDefault[i]);
                     }
+                }
+            }
+
+            #endregion
+
+            #region Load Menu
+
+            menuControls = new List<MenuControl>();
+
+            if (avatarDescriptor.controlName != null)
+            {
+                for (int i = 0; i < avatarDescriptor.controlName.Length; i++)
+                {
+                    menuControls.Add(new MenuControl
+                    {
+                        name = avatarDescriptor.controlName[i],
+                        type = avatarDescriptor.controlTypes[i], 
+                        parameter = avatarDescriptor.controlParameterNames[i],
+                        value = avatarDescriptor.controlValues[i]
+                    });
                 }
             }
 
@@ -396,6 +618,7 @@ namespace ValheimPlayerModels
 
         public void ToggleAvatar(bool visible = true)
         {
+            playerModelVisible = visible;
             pmAnimator?.gameObject.SetActive(visible);
 
             foreach (SkinnedMeshRenderer skinnedMeshRenderer in ogVisual.GetComponentsInChildren<SkinnedMeshRenderer>())
@@ -405,8 +628,6 @@ namespace ValheimPlayerModels
             }
 
             ToggleEquipments(!visible);
-
-            playerModelVisible = visible;
         }
 
         public void Hide()
@@ -461,6 +682,7 @@ namespace ValheimPlayerModels
                     {
                         attachTransform.ogAttach.localPosition = attachTransform.ogPosition;
                         attachTransform.ogAttach.localRotation = attachTransform.ogRotation;
+                        attachTransform.ogAttach.localScale = attachTransform.ogScale;
                     }
                 }
 
@@ -473,17 +695,76 @@ namespace ValheimPlayerModels
             ragdoll.gameObject.AddComponent<CustomRagdoll>().Setup(ogAnimator,pmAnimator);
         }
 
+        public void Unload()
+        {
+            if (avatarBundle) avatarBundle.Unload(true);
+        }
+
+        #endregion
+
         #region Animator Params Methods
+
+        private void SetParameterValue(string name, float value)
+        {
+            int hash = Animator.StringToHash(name);
+            SetParameterValue(hash,value);
+        }
+
+        private void SetParameterValue(int hash, float value)
+        {
+            if (!parameters.ContainsKey(hash)) return;
+            switch (parameters[hash].type)
+            {
+                case ParameterType.Bool:
+                    SetBool(hash, value != 0);
+                    break;
+                case ParameterType.Int:
+                    SetInt(hash, (int)value);
+                    break;
+                case ParameterType.Float:
+                    SetFloat(hash, value);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private float GetParameterValue(string name)
+        {
+            int hash = Animator.StringToHash(name);
+            return GetParameterValue(hash);
+        }
+
+        private float GetParameterValue(int hash)
+        {
+            if (!parameters.ContainsKey(hash)) return 0;
+
+            switch (parameters[hash].type)
+            {
+                case ParameterType.Bool:
+                    return parameters[hash].boolValue ? 1 : 0;
+                case ParameterType.Int:
+                    return parameters[hash].intValue;
+                case ParameterType.Float:
+                    return parameters[hash].floatValue;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
 
         public bool SetBool(string name, bool value)
         {
             int hash = Animator.StringToHash(name);
-            if (!boolParameters.ContainsKey(hash)) return false;
+            return SetBool(hash, value);
+        }
 
-            boolParameters[hash] = value;
-            if (pmAnimator.GetBool(hash) == boolParameters[hash]) return true;
+        public bool SetBool(int hash, bool value)
+        {
+            if (!parameters.ContainsKey(hash)) return false;
 
+            parameters[hash].boolValue = value;
             pmAnimator.SetBool(hash, value);
+
             if (zNetView.GetZDO() != null && zNetView.IsOwner())
                 zNetView.GetZDO().Set(438569 + hash, value);
             return true;
@@ -492,12 +773,16 @@ namespace ValheimPlayerModels
         public bool SetInt(string name, int value)
         {
             int hash = Animator.StringToHash(name);
-            if (!intParameters.ContainsKey(hash)) return false;
+            return SetInt(hash, value);
+        }
 
-            intParameters[hash] = value;
-            if (pmAnimator.GetInteger(hash) == intParameters[hash]) return true;
+        public bool SetInt(int hash, int value)
+        {
+            if (!parameters.ContainsKey(hash)) return false;
 
+            parameters[hash].intValue = value;
             pmAnimator.SetInteger(hash, value);
+
             if (zNetView.GetZDO() != null && zNetView.IsOwner())
                 zNetView.GetZDO().Set(438569 + hash, value);
             return true;
@@ -506,12 +791,16 @@ namespace ValheimPlayerModels
         public bool SetFloat(string name, float value)
         {
             int hash = Animator.StringToHash(name);
-            if (!floatParameters.ContainsKey(hash)) return false;
+            return SetFloat(hash, value);
+        }
 
-            floatParameters[hash] = value;
-            if (Mathf.Abs(floatParameters[hash] - value) < 0.01f) return true;
+        public bool SetFloat(int hash, float value)
+        {
+            if (!parameters.ContainsKey(hash)) return false;
 
+            parameters[hash].floatValue = value;
             pmAnimator.SetFloat(hash, value);
+
             if (zNetView.GetZDO() != null && zNetView.IsOwner())
                 zNetView.GetZDO().Set(438569 + hash, value);
             return true;
