@@ -1,4 +1,11 @@
 # ValheimPlayerModels
+[![Donate](https://img.shields.io/badge/Donate-Ko--fi-blue)](https://ko-fi.com/ikeiwa)
+[![Donate](https://img.shields.io/badge/Donate-Paypal-green)](https://www.paypal.com/donate/?hosted_button_id=V43V357EFJL74)
+![GitHub all releases](https://img.shields.io/github/downloads/Ikeiwa/ValheimPlayerModels/total)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Ikeiwa/ValheimPlayerModels)
+
+Use custom player models in Valheim !
+
 # [DOWNLOAD](https://github.com/Ikeiwa/ValheimPlayerModels/releases/latest/download/ValheimPlayerModels.dll)
 ![preview](https://github.com/Ikeiwa/ValheimPlayerModels/blob/main/preview.png)
 # How to install
