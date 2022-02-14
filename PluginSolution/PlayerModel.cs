@@ -79,7 +79,7 @@ namespace ValheimPlayerModels
         private List<MenuControl> menuControls;
 
 
-        private bool showMenu;
+        public static bool showMenu { get; private set; }
         private Rect windowRect;
         private CursorLockMode oldCursorLockState = CursorLockMode.Confined;
         private bool oldCursorVisible = false;
@@ -204,7 +204,6 @@ namespace ValheimPlayerModels
 
             if (showMenu)
             {
-                SetUnlockCursor();
                 if(hasChangedParam > 0)
                     hasChangedParam--;
             }
@@ -214,8 +213,6 @@ namespace ValheimPlayerModels
         {
             if (showMenu)
             {
-                SetUnlockCursor();
-
                 windowRect = new Rect(Screen.width, Screen.height, 250, 400);
                 windowRect.x -= windowRect.width;
                 windowRect.y -= windowRect.height;
@@ -660,7 +657,7 @@ namespace ValheimPlayerModels
                             itemInstance?.SetActive(visible || avatarDescriptor.showCape);
                             foreach (SkinnedMeshRenderer skinnedMeshRenderer in itemInstance.GetComponentsInChildren<SkinnedMeshRenderer>())
                             {
-                                skinnedMeshRenderer.forceRenderingOff = visible;
+                                skinnedMeshRenderer.forceRenderingOff = false;
                                 skinnedMeshRenderer.updateWhenOffscreen = true;
                             }
                         }
@@ -680,6 +677,12 @@ namespace ValheimPlayerModels
                         attachTransform.ogAttach.localPosition = attachTransform.ogPosition;
                         attachTransform.ogAttach.localRotation = attachTransform.ogRotation;
                         attachTransform.ogAttach.localScale = attachTransform.ogScale;
+                    }
+
+                    foreach (SkinnedMeshRenderer skinnedMeshRenderer in ogVisual.GetComponentsInChildren<SkinnedMeshRenderer>())
+                    {
+                        skinnedMeshRenderer.forceRenderingOff = false;
+                        skinnedMeshRenderer.updateWhenOffscreen = true;
                     }
                 }
 

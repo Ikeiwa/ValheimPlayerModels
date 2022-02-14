@@ -83,5 +83,29 @@ namespace ValheimPlayerModels
             }
         }
     }
+
+    [HarmonyPatch(typeof(GameCamera), "UpdateMouseCapture")]
+    static class Patch_GameCamera_UpdateMouseCapture
+    {
+        [HarmonyPrefix]
+        static bool Prefix(GameCamera __instance)
+        {
+            if (PluginConfig.enablePlayerModels.Value && PlayerModel.showMenu)
+                return false;
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), "SetMouseLook")]
+    static class Patch_Player_SetMouseLook
+    {
+        [HarmonyPrefix]
+        static bool Prefix(Player __instance)
+        {
+            if (PluginConfig.enablePlayerModels.Value && PlayerModel.showMenu)
+                return false;
+            return true;
+        }
+    }
 }
 #endif
