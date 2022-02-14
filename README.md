@@ -13,7 +13,7 @@
 
  1. Install [Unity 2019.4.31](https://unity3d.com/fr/unity/whats-new/2019.4.31)
  2. Create a new 3D Project
- 3. [Download the SDK](https://github.com/Ikeiwa/ValheimPlayerModels/releases/latest/download/ValheimPlayerModel_SDK.unitypackage)
+ 3. [Download the SDK](https://github.com/Ikeiwa/ValheimPlayerModels/releases/latest/download/ValheimPlayerModels_SDK.unitypackage)
  4. Import the SDK and all your avatar assets
  5. Change your avatar model rig to Humanoid
  6. Place your avatar model in the scene
