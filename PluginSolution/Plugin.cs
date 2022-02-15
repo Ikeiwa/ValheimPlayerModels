@@ -8,6 +8,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using System.Reflection;
 using UnityEngine;
+using ValheimPlayerModels.Loaders;
 
 namespace ValheimPlayerModels
 {
@@ -18,7 +19,7 @@ namespace ValheimPlayerModels
         public static string playerModelsPath => Path.Combine(Environment.CurrentDirectory, "PlayerModels");
 
         public static Dictionary<string, string> playerModelBundlePaths { get; private set; }
-        public static Dictionary<string, AssetBundle> playerModelBundleCache = new Dictionary<string, AssetBundle>();
+        public static Dictionary<string, AvatarLoaderBase> playerModelBundleCache = new Dictionary<string, AvatarLoaderBase>();
 
         private void Awake()
         {
@@ -29,7 +30,7 @@ namespace ValheimPlayerModels
             if (!Directory.Exists(playerModelsPath))
                 Directory.CreateDirectory(playerModelsPath);
 
-            RefreshBundlePaths();
+            RefreshBundlePaths(false);
 
             var harmony = new Harmony(PluginInfo.PLUGIN_GUID+".patch");
             harmony.PatchAll();
@@ -64,9 +65,9 @@ namespace ValheimPlayerModels
                         Destroy(playerModel);
                     }
 
-                    foreach (AssetBundle assetBundle in playerModelBundleCache.Values)
+                    foreach (AvatarLoaderBase loader in playerModelBundleCache.Values)
                     {
-                        if(assetBundle) assetBundle.Unload(true);
+                        if(loader != null) loader.Unload();
                     }
                     playerModelBundleCache.Clear();
                     RefreshBundlePaths();
@@ -109,17 +110,40 @@ namespace ValheimPlayerModels
                     }
                 }
             }
+            else if (e.ChangedSetting.Definition.Key == "SelectedAvatar")
+            {
+                PlayerModel playerModel = null;
+
+                if (Player.m_localPlayer != null)
+                    playerModel = Player.m_localPlayer.gameObject.GetComponent<PlayerModel>();
+                else
+                    playerModel = FindObjectOfType<PlayerModel>();
+
+                if (playerModel != null)
+                {
+                    if (playerModel.playerModelLoaded)
+                    {
+                        playerModel.ReloadAvatar();
+                    }
+                }
+            }
         }
 
-        public static void RefreshBundlePaths()
+        public static void RefreshBundlePaths(bool silent = true)
         {
             playerModelBundlePaths = new Dictionary<string, string>();
 
-            string[] files = Directory.GetFiles(playerModelsPath, "*.valavtr");
+            string[] files = Directory.GetFiles(playerModelsPath, "*.*", SearchOption.AllDirectories)
+                .Where(s => s.EndsWith(".valavtr") || s.EndsWith(".vrm")).ToArray();
+
             foreach (string file in files)
             {
-                Debug.Log("Found avatar : " + Path.GetFileNameWithoutExtension(file).ToLower());
-                playerModelBundlePaths.Add(Path.GetFileNameWithoutExtension(file).ToLower(), file);
+                string fileName = Path.GetFileNameWithoutExtension(file).ToLower();
+
+                if (!silent)
+                    Debug.Log("Found avatar : " + fileName);
+                if(!playerModelBundlePaths.ContainsKey(fileName))
+                    playerModelBundlePaths.Add(fileName, file);
             }
         }
 

@@ -90,7 +90,7 @@ namespace ValheimPlayerModels
         [HarmonyPrefix]
         static bool Prefix(GameCamera __instance)
         {
-            if (PluginConfig.enablePlayerModels.Value && PlayerModel.showMenu)
+            if (PluginConfig.enablePlayerModels.Value && (PlayerModel.showActionMenu || PlayerModel.showAvatarMenu))
                 return false;
             return true;
         }
@@ -102,7 +102,7 @@ namespace ValheimPlayerModels
         [HarmonyPrefix]
         static bool Prefix(Player __instance)
         {
-            if (PluginConfig.enablePlayerModels.Value && PlayerModel.showMenu)
+            if (PluginConfig.enablePlayerModels.Value && (PlayerModel.showActionMenu || PlayerModel.showAvatarMenu))
                 return false;
             return true;
         }
