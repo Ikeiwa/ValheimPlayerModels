@@ -522,8 +522,8 @@ namespace ValheimPlayerModels
 
                 switch (Path.GetExtension(avatarFile).ToLower())
                 {
-                    case ".valavtr": loader = new ValavtrLoader();
-                        break;
+                    case ".valavtr": loader = new ValavtrLoader(); break;
+                    case ".vrm": loader = new VrmLoader(); break;
                     default:
                         Destroy(this);
                         yield break;
