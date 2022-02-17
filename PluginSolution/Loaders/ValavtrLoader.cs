@@ -25,29 +25,31 @@ namespace ValheimPlayerModels.Loaders
             LoadedSuccessfully = true;
         }
 
-        public override bool LoadAvatar(PlayerModel playerModel)
+        public override AvatarInstance LoadAvatar(PlayerModel playerModel)
         {
+            AvatarInstance avatarInstance = new AvatarInstance(playerModel);
+
             GameObject avatarAsset = avatarBundle.LoadAsset<GameObject>("_avatar");
             if (!avatarAsset)
             {
                 Debug.LogError("Couldn't find avatar prefab");
-                return false;
+                return null;
             }
 
-            AvatarObject = Object.Instantiate(avatarAsset);
-            AvatarDescriptor = AvatarObject.GetComponent<ValheimAvatarDescriptor>();
-            Animator = AvatarObject.GetComponent<Animator>();
+            avatarInstance.AvatarObject = Object.Instantiate(avatarAsset);
+            avatarInstance.AvatarDescriptor = avatarInstance.AvatarObject.GetComponent<ValheimAvatarDescriptor>();
+            avatarInstance.Animator = avatarInstance.AvatarObject.GetComponent<Animator>();
 
-            Transform = AvatarObject.transform;
-            Transform.SetParent(playerModel.transform, false);
+            avatarInstance.Transform = avatarInstance.AvatarObject.transform;
+            avatarInstance.Transform.SetParent(playerModel.transform, false);
 
-            LeftFoot = Animator.GetBoneTransform(HumanBodyBones.LeftFoot);
-            RightFoot = Animator.GetBoneTransform(HumanBodyBones.RightFoot);
-            Hips = Animator.GetBoneTransform(HumanBodyBones.Hips);
+            avatarInstance.LeftFoot = avatarInstance.Animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+            avatarInstance.RightFoot = avatarInstance.Animator.GetBoneTransform(HumanBodyBones.RightFoot);
+            avatarInstance.Hips = avatarInstance.Animator.GetBoneTransform(HumanBodyBones.Hips);
 
             #region Convert Material Shaders
 
-            Renderer[] renderers = AvatarObject.GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = avatarInstance.AvatarObject.GetComponentsInChildren<Renderer>();
             foreach (Renderer renderer in renderers)
             {
                 foreach (Material mat in renderer.sharedMaterials)
@@ -73,45 +75,45 @@ namespace ValheimPlayerModels.Loaders
 
             #region Import Parameters
 
-            AvatarDescriptor.Validate();
+            avatarInstance.AvatarDescriptor.Validate();
 
-            Parameters = new Dictionary<int, AvatarLoaderBase.AvatarParameter>();
+            avatarInstance.Parameters = new Dictionary<int, AvatarInstance.AvatarParameter>();
 
-            if (AvatarDescriptor.boolParameters != null)
+            if (avatarInstance.AvatarDescriptor.boolParameters != null)
             {
-                for (int i = 0; i < AvatarDescriptor.boolParameters.Count; i++)
+                for (int i = 0; i < avatarInstance.AvatarDescriptor.boolParameters.Count; i++)
                 {
-                    int hash = Animator.StringToHash(AvatarDescriptor.boolParameters[i]);
-                    if (!Parameters.ContainsKey(hash))
+                    int hash = Animator.StringToHash(avatarInstance.AvatarDescriptor.boolParameters[i]);
+                    if (!avatarInstance.Parameters.ContainsKey(hash))
                     {
-                        Parameters.Add(hash, new AvatarLoaderBase.AvatarParameter { type = AvatarLoaderBase.ParameterType.Bool, boolValue = AvatarDescriptor.boolParametersDefault[i] });
-                        Animator.SetBool(hash, AvatarDescriptor.boolParametersDefault[i]);
+                        avatarInstance.Parameters.Add(hash, new AvatarInstance.AvatarParameter { type = AvatarInstance.ParameterType.Bool, boolValue = avatarInstance.AvatarDescriptor.boolParametersDefault[i] });
+                        avatarInstance.Animator.SetBool(hash, avatarInstance.AvatarDescriptor.boolParametersDefault[i]);
                     }
                 }
             }
 
-            if (AvatarDescriptor.intParameters != null)
+            if (avatarInstance.AvatarDescriptor.intParameters != null)
             {
-                for (int i = 0; i < AvatarDescriptor.intParameters.Count; i++)
+                for (int i = 0; i < avatarInstance.AvatarDescriptor.intParameters.Count; i++)
                 {
-                    int hash = Animator.StringToHash(AvatarDescriptor.intParameters[i]);
-                    if (!Parameters.ContainsKey(hash))
+                    int hash = Animator.StringToHash(avatarInstance.AvatarDescriptor.intParameters[i]);
+                    if (!avatarInstance.Parameters.ContainsKey(hash))
                     {
-                        Parameters.Add(hash, new AvatarLoaderBase.AvatarParameter { type = AvatarLoaderBase.ParameterType.Int, intValue = AvatarDescriptor.intParametersDefault[i] });
-                        Animator.SetInteger(hash, AvatarDescriptor.intParametersDefault[i]);
+                        avatarInstance.Parameters.Add(hash, new AvatarInstance.AvatarParameter { type = AvatarInstance.ParameterType.Int, intValue = avatarInstance.AvatarDescriptor.intParametersDefault[i] });
+                        avatarInstance.Animator.SetInteger(hash, avatarInstance.AvatarDescriptor.intParametersDefault[i]);
                     }
                 }
             }
 
-            if (AvatarDescriptor.floatParameters != null)
+            if (avatarInstance.AvatarDescriptor.floatParameters != null)
             {
-                for (int i = 0; i < AvatarDescriptor.floatParameters.Count; i++)
+                for (int i = 0; i < avatarInstance.AvatarDescriptor.floatParameters.Count; i++)
                 {
-                    int hash = Animator.StringToHash(AvatarDescriptor.floatParameters[i]);
-                    if (!Parameters.ContainsKey(hash))
+                    int hash = Animator.StringToHash(avatarInstance.AvatarDescriptor.floatParameters[i]);
+                    if (!avatarInstance.Parameters.ContainsKey(hash))
                     {
-                        Parameters.Add(hash, new AvatarLoaderBase.AvatarParameter { type = AvatarLoaderBase.ParameterType.Float, floatValue = AvatarDescriptor.floatParametersDefault[i] });
-                        Animator.SetFloat(hash, AvatarDescriptor.floatParametersDefault[i]);
+                        avatarInstance.Parameters.Add(hash, new AvatarInstance.AvatarParameter { type = AvatarInstance.ParameterType.Float, floatValue = avatarInstance.AvatarDescriptor.floatParametersDefault[i] });
+                        avatarInstance.Animator.SetFloat(hash, avatarInstance.AvatarDescriptor.floatParametersDefault[i]);
                     }
                 }
             }
@@ -120,35 +122,30 @@ namespace ValheimPlayerModels.Loaders
 
             #region Load Menu
 
-            MenuControls = new List<AvatarLoaderBase.MenuControl>();
+            avatarInstance.MenuControls = new List<AvatarInstance.MenuControl>();
 
-            if (AvatarDescriptor.controlName != null)
+            if (avatarInstance.AvatarDescriptor.controlName != null)
             {
-                for (int i = 0; i < AvatarDescriptor.controlName.Length; i++)
+                for (int i = 0; i < avatarInstance.AvatarDescriptor.controlName.Length; i++)
                 {
-                    MenuControls.Add(new AvatarLoaderBase.MenuControl
+                    avatarInstance.MenuControls.Add(new AvatarInstance.MenuControl
                     {
-                        name = AvatarDescriptor.controlName[i],
-                        type = AvatarDescriptor.controlTypes[i],
-                        parameter = AvatarDescriptor.controlParameterNames[i],
-                        value = AvatarDescriptor.controlValues[i]
+                        name = avatarInstance.AvatarDescriptor.controlName[i],
+                        type = avatarInstance.AvatarDescriptor.controlTypes[i],
+                        parameter = avatarInstance.AvatarDescriptor.controlParameterNames[i],
+                        value = avatarInstance.AvatarDescriptor.controlValues[i]
                     });
                 }
             }
 
             #endregion
 
-            return true;
+            return avatarInstance;
         }
 
         public override void Unload()
         {
             if (avatarBundle) avatarBundle.Unload(true);
-        }
-
-        public override void Destroy()
-        {
-            Object.Destroy(AvatarObject);
         }
     }
 }

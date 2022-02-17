@@ -10,17 +10,12 @@ namespace ValheimPlayerModels.Loaders
             yield break;
         }
 
-        public override bool LoadAvatar(PlayerModel playerModel)
+        public override AvatarInstance LoadAvatar(PlayerModel playerModel)
         {
-            return false;
+            return null;
         }
 
         public override void Unload()
-        {
-
-        }
-
-        public override void Destroy()
         {
 
         }

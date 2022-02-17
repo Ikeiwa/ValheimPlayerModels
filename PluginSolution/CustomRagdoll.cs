@@ -30,6 +30,9 @@ namespace ValheimPlayerModels
             ragdollAnimator = ragdoll.gameObject.transform.GetChild(0).gameObject.AddComponent<Animator>();
             ragdollAnimator.avatar = ogAnimator.avatar;
 
+            avatarAnimator.GetBoneTransform(HumanBodyBones.Hips).position =
+                ragdollAnimator.GetBoneTransform(HumanBodyBones.Hips).position;
+
             for (var i = 0; i < 55; i++)
             {
                 var ogTransform = ragdollAnimator.GetBoneTransform((HumanBodyBones)i);

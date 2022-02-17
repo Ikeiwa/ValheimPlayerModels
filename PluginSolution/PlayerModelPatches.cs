@@ -65,20 +65,16 @@ namespace ValheimPlayerModels
             string[] param = command.Split(' ');
             if (command.StartsWith("anim") && param.Length == 3)
             {
-                if (Player.m_localPlayer)
+                if (PlayerModel.localModel)
                 {
-                    PlayerModel playerModel = Player.m_localPlayer.GetComponent<PlayerModel>();
-                    if (playerModel)
-                    {
-                        if (bool.TryParse(param[2], out bool valueBool))
-                            if (playerModel.SetBool(param[1], valueBool)) return;
+                    if (bool.TryParse(param[2], out bool valueBool))
+                        if (PlayerModel.localModel.avatar.SetBool(param[1], valueBool)) return;
 
-                        if (int.TryParse(param[2], out int valueInt))
-                            if (playerModel.SetInt(param[1], valueInt)) return;
+                    if (int.TryParse(param[2], out int valueInt))
+                        if (PlayerModel.localModel.avatar.SetInt(param[1], valueInt)) return;
 
-                        if (float.TryParse(param[2], out float valuefloat))
-                            playerModel.SetFloat(param[1], valuefloat);
-                    }
+                    if (float.TryParse(param[2], out float valuefloat))
+                        PlayerModel.localModel.avatar.SetFloat(param[1], valuefloat);
                 }
             }
         }
@@ -90,7 +86,7 @@ namespace ValheimPlayerModels
         [HarmonyPrefix]
         static bool Prefix(GameCamera __instance)
         {
-            if (PluginConfig.enablePlayerModels.Value && (PlayerModel.showActionMenu || PlayerModel.showAvatarMenu))
+            if (PluginConfig.enablePlayerModels.Value && (Plugin.showActionMenu || Plugin.showAvatarMenu))
                 return false;
             return true;
         }
@@ -102,7 +98,7 @@ namespace ValheimPlayerModels
         [HarmonyPrefix]
         static bool Prefix(Player __instance)
         {
-            if (PluginConfig.enablePlayerModels.Value && (PlayerModel.showActionMenu || PlayerModel.showAvatarMenu))
+            if (PluginConfig.enablePlayerModels.Value && (Plugin.showActionMenu || Plugin.showAvatarMenu))
                 return false;
             return true;
         }
