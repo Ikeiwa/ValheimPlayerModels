@@ -234,9 +234,9 @@ namespace ValheimPlayerModels
                             }
                             else
                             {
-                                tries++;
                                 yield return null;
                             }
+                            tries++;
                         } while (string.IsNullOrEmpty(playerId) && tries < 100);
 
                         if (!string.IsNullOrEmpty(playerId))
