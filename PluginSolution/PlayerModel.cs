@@ -140,10 +140,13 @@ namespace ValheimPlayerModels
 
                 foreach (AttachTransform attachTransform in ogAttachments)
                 {
-                    attachTransform.ogAttach.position = attachTransform.pmAttach.position;
-                    attachTransform.ogAttach.rotation = attachTransform.pmAttach.rotation;
-                    attachTransform.ogAttach.localScale =
-                        Vector3.Scale(attachTransform.ogScale, attachTransform.pmAttach.localScale);
+                    if (attachTransform.pmAttach != null)
+                    {
+                        attachTransform.ogAttach.position = attachTransform.pmAttach.position;
+                        attachTransform.ogAttach.rotation = attachTransform.pmAttach.rotation;
+                        attachTransform.ogAttach.localScale =
+                            Vector3.Scale(attachTransform.ogScale, attachTransform.pmAttach.localScale);
+                    } 
                 }
 
                 if (requestHide)
@@ -231,6 +234,7 @@ namespace ValheimPlayerModels
                             if (playerIndex != -1)
                             {
                                 playerId = playerList[playerIndex].m_host;
+                                tries++;
                             }
                             else
                             {
