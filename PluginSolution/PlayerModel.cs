@@ -80,7 +80,7 @@ namespace ValheimPlayerModels
         {
             
         }
-
+        
         private void FixedUpdate()
         {
             if (Game.instance != null && playerModelLoaded && playerModelVisible && !dead && zNetView.IsValid())
@@ -131,11 +131,14 @@ namespace ValheimPlayerModels
 
                     Transform ogHips = ogAnimator.GetBoneTransform(HumanBodyBones.Hips);
 
-                    avatar.Hips.position = new Vector3(avatar.Hips.position.x, ogHips.position.y, avatar.Hips.position.z);
+                    if (ogHips)
+                    {
+                        avatar.Hips.position = new Vector3(avatar.Hips.position.x, ogHips.position.y, avatar.Hips.position.z);
 
-                    float groundOffset = Mathf.Min(avatar.LeftFoot.position.y - avatar.Transform.position.y, avatar.RightFoot.position.y - avatar.Transform.position.y, 0);
+                        float groundOffset = Mathf.Min(avatar.LeftFoot.position.y - avatar.Transform.position.y, avatar.RightFoot.position.y - avatar.Transform.position.y, 0);
 
-                    avatar.Hips.Translate(0, -groundOffset + footOffset, 0, Space.World);
+                        avatar.Hips.Translate(0, -groundOffset + footOffset, 0, Space.World);
+                    }
                 }
 
                 foreach (AttachTransform attachTransform in ogAttachments)
@@ -162,7 +165,7 @@ namespace ValheimPlayerModels
                 }
             }
         }
-
+        
         #endregion
 
         #region Utility Methods
@@ -265,11 +268,11 @@ namespace ValheimPlayerModels
 
             #region Load Asset Bundle
 
-            Debug.Log("Loading " + selectedAvatar + " avatar");
+            Plugin.Log.LogMessage("Loading " + selectedAvatar + " avatar");
 
             if (!Plugin.playerModelBundlePaths.ContainsKey(selectedAvatar))
             {
-                Debug.LogError("Bundle list doesn't contain bundle for : " + selectedAvatar);
+                Plugin.Log.LogError("Bundle list doesn't contain bundle for : " + selectedAvatar);
                 Destroy(this);
                 yield break;
             }

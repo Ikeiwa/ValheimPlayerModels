@@ -40,6 +40,7 @@ namespace ValheimPlayerModels.Loaders
         public Transform RightFoot;
         public Transform Hips;
         public Animator Animator;
+        public LODGroup lodGroup;
         public ValheimAvatarDescriptor AvatarDescriptor;
         public Dictionary<int, AvatarParameter> Parameters;
         public List<MenuControl> MenuControls;

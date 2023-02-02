@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
 
 namespace ValheimPlayerModels.Loaders
@@ -17,7 +18,7 @@ namespace ValheimPlayerModels.Loaders
             avatarBundle = bundleRequest.assetBundle;
             if (!avatarBundle)
             {
-                Debug.LogError("Avatar Bundle " + file + " couldn't load!");
+                Plugin.Log.LogError("Avatar Bundle " + file + " couldn't load!");
                 LoadedSuccessfully = false;
                 yield break;
             }
@@ -32,7 +33,7 @@ namespace ValheimPlayerModels.Loaders
             GameObject avatarAsset = avatarBundle.LoadAsset<GameObject>("_avatar");
             if (!avatarAsset)
             {
-                Debug.LogError("Couldn't find avatar prefab");
+                Plugin.Log.LogError("Couldn't find avatar prefab");
                 return null;
             }
 
@@ -46,6 +47,16 @@ namespace ValheimPlayerModels.Loaders
             avatarInstance.LeftFoot = avatarInstance.Animator.GetBoneTransform(HumanBodyBones.LeftFoot);
             avatarInstance.RightFoot = avatarInstance.Animator.GetBoneTransform(HumanBodyBones.RightFoot);
             avatarInstance.Hips = avatarInstance.Animator.GetBoneTransform(HumanBodyBones.Hips);
+
+
+            avatarInstance.lodGroup = avatarInstance.AvatarObject.AddComponent<LODGroup>();
+            var lodMeshes = new LOD(0.1f, avatarInstance.AvatarObject.GetComponentsInChildren<SkinnedMeshRenderer>());
+            avatarInstance.lodGroup.SetLODs(new LOD[] { lodMeshes });
+            avatarInstance.lodGroup.RecalculateBounds();
+
+            var playerLodGroup = playerModel.player.GetVisual().GetComponent<LODGroup>();
+            avatarInstance.lodGroup.fadeMode = playerLodGroup.fadeMode;
+            avatarInstance.lodGroup.animateCrossFading = playerLodGroup.animateCrossFading;
 
             #region Convert Material Shaders
 

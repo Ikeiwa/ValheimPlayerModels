@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <AssemblyName>ValheimPlayerModels</AssemblyName>
     <Description>Use custom player models in Valheim !</Description>
     <Version>1.0.0</Version>
@@ -22,10 +22,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
-    <PackageReference Include="UnityEngine.Modules" Version="2019.4.31" IncludeAssets="compile" />
+    <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="BepInEx.Core" Version="5.4.19" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+    <PackageReference Include="UnityEngine.Modules" Version="2020.3.33" IncludeAssets="compile" />
     <PackageReference Include="Valheim.GameLibs" Version="*-*" IncludeAssets="compile" />
   </ItemGroup>
   
@@ -34,6 +36,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(ConfigurationName) == SDK (&#xD;&#xA;	copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\UnitySDK\ValheimPlayerModelsSDK\&quot; /y&#xD;&#xA;) ELSE (&#xD;&#xA;	echo Edit the Post-build event to export the plugin in your game folder&#xD;&#xA;	copy &quot;$(TargetPath)&quot; &quot;F:\Steam\steamapps\common\Valheim\BepInEx\plugins\$(TargetFileName)&quot; /y&#xD;&#xA;)" />
+    <Exec Command="if $(ConfigurationName) == SDK (&#xD;&#xA; copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\UnitySDK\ValheimPlayerModelsSDK\&quot; /y&#xD;&#xA;) ELSE (&#xD;&#xA; echo Edit the Post-build event to export the plugin in your game folder&#xD;&#xA; copy &quot;$(TargetPath)&quot; &quot;F:\Steam\steamapps\common\Valheim\BepInEx\plugins\$(TargetFileName)&quot; /y&#xD;&#xA; if $(ConfigurationName) == Debug (&#xD;&#xA;  copy &quot;$(TargetPath)&quot; &quot;F:\Steam\steamapps\common\Valheim\BepInEx\plugins\$(TargetName).pdb&quot; /y&#xD;&#xA; )&#xD;&#xA;)" />
   </Target>
 </Project>

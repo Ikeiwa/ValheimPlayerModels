@@ -12,6 +12,10 @@ namespace ValheimPlayerModels
 {
     public static class PluginConfig
     {
+        public const string PLUGIN_GUID = "ValheimPlayerModels";
+        public const string PLUGIN_NAME = "Valheim Player Models";
+        public const string PLUGIN_VERSION = "1.0.1";
+
         public static ConfigFile config;
         public static ConfigEntry<bool> enablePlayerModels;
         public static ConfigEntry<bool> enableCustomRagdoll;

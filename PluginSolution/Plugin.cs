@@ -9,17 +9,21 @@ using HarmonyLib;
 using System.Reflection;
 using UnityEngine;
 using ValheimPlayerModels.Loaders;
+using BepInEx.Logging;
 
 namespace ValheimPlayerModels
 {
-    [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInPlugin(PluginConfig.PLUGIN_GUID, PluginConfig.PLUGIN_NAME, PluginConfig.PLUGIN_VERSION)]
     [BepInProcess("valheim.exe")]
     public class Plugin : BaseUnityPlugin
     {
+        public static ManualLogSource Log;
+
         public static string playerModelsPath => Path.Combine(Environment.CurrentDirectory, "PlayerModels");
 
         public static Dictionary<string, string> playerModelBundlePaths { get; private set; }
         public static Dictionary<string, AvatarLoaderBase> playerModelBundleCache = new Dictionary<string, AvatarLoaderBase>();
+        public static Dictionary<Character,PlayerModel> playerModelCharacters = new Dictionary<Character,PlayerModel>();
 
         public static bool showActionMenu;
         public static bool showAvatarMenu;
@@ -35,6 +39,8 @@ namespace ValheimPlayerModels
 
         private void Awake()
         {
+            Log = Logger;
+            UnityEngine.Scripting.GarbageCollector.incrementalTimeSliceNanoseconds = 5000000;
             PluginConfig.InitConfig(Config);
 
             Config.SettingChanged += ConfigOnSettingChanged;
@@ -44,10 +50,10 @@ namespace ValheimPlayerModels
 
             RefreshBundlePaths(false);
 
-            var harmony = new Harmony(PluginInfo.PLUGIN_GUID+".patch");
+            var harmony = new Harmony(PluginConfig.PLUGIN_GUID+".patch");
             harmony.PatchAll();
 
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+            Logger.LogInfo($"Plugin {PluginConfig.PLUGIN_GUID} is loaded!");
         }
 
         private void Update()
@@ -107,16 +113,13 @@ namespace ValheimPlayerModels
 
             if (PluginConfig.avatarMenuKey.Value.IsDown() && !showActionMenu)
             {
-                if (PlayerModel.localModel != null)
+                showAvatarMenu = !showAvatarMenu;
+                if (showAvatarMenu)
                 {
-                    showAvatarMenu = !showAvatarMenu;
-                    if (showAvatarMenu)
-                    {
-                        SetUnlockCursor();
-                        GUI.FocusWindow(AvatarWindowId);
-                    }
-                    else ResetCursor();
+                    SetUnlockCursor();
+                    GUI.FocusWindow(AvatarWindowId);
                 }
+                else ResetCursor();
             }
 
             if (showActionMenu)
@@ -186,7 +189,7 @@ namespace ValheimPlayerModels
                 string fileName = Path.GetFileNameWithoutExtension(file).ToLower();
 
                 if (!silent)
-                    Debug.Log("Found avatar : " + fileName);
+                    Log.LogMessage("Found avatar : " + fileName);
                 if(!playerModelBundlePaths.ContainsKey(fileName))
                     playerModelBundlePaths.Add(fileName, file);
             }
@@ -213,49 +216,48 @@ namespace ValheimPlayerModels
 
         private void OnGUI()
         {
-            if (Game.instance == null || PlayerModel.localModel != null)
+            if (showActionMenu && PlayerModel.localModel != null)
             {
-                if (showActionMenu)
+                ActionWindowRect = new Rect(Screen.width, Screen.height, 250, 400);
+                ActionWindowRect.x -= ActionWindowRect.width;
+                ActionWindowRect.y -= ActionWindowRect.height;
+
+                if (GUI.Button(new Rect(0, 0, Screen.width, Screen.height), string.Empty, GUIStyle.none) &&
+                    !ActionWindowRect.Contains(Input.mousePosition) || Input.GetKeyDown(KeyCode.Escape))
                 {
-                    ActionWindowRect = new Rect(Screen.width, Screen.height, 250, 400);
-                    ActionWindowRect.x -= ActionWindowRect.width;
-                    ActionWindowRect.y -= ActionWindowRect.height;
-
-                    if (GUI.Button(new Rect(0, 0, Screen.width, Screen.height), string.Empty, GUIStyle.none) &&
-                        !ActionWindowRect.Contains(Input.mousePosition) || Input.GetKeyDown(KeyCode.Escape))
-                    {
-                        showActionMenu = false;
-                        ResetCursor();
-                    }
-
-                    GUI.enabled = PlayerModel.localModel.playerModelLoaded;
-
-                    GUI.Box(ActionWindowRect, GUIContent.none);
-                    GUILayout.Window(Plugin.ActionWindowId, ActionWindowRect, ActionMenuWindow, "Action Menu");
-
-                    Input.ResetInputAxes();
+                    showActionMenu = false;
+                    ResetCursor();
                 }
 
-                if (showAvatarMenu)
-                {
-                    AvatarWindowRect = new Rect(20, 100, 250, 400);
+                GUI.enabled = PlayerModel.localModel.playerModelLoaded;
 
-                    if (GUI.Button(new Rect(0, 0, Screen.width, Screen.height), string.Empty, GUIStyle.none) &&
-                        !AvatarWindowRect.Contains(Input.mousePosition) || Input.GetKeyDown(KeyCode.Escape))
-                    {
-                        showAvatarMenu = false;
-                        ResetCursor();
-                    }
+                GUI.Box(ActionWindowRect, GUIContent.none);
+                GUILayout.Window(Plugin.ActionWindowId, ActionWindowRect, ActionMenuWindow, "Action Menu");
 
-                    GUI.enabled = PlayerModel.localModel.playerModelLoaded;
-
-                    GUI.Box(AvatarWindowRect, GUIContent.none);
-                    GUILayout.Window(AvatarWindowId, AvatarWindowRect, AvatarMenuWindow, "Avatar Menu");
-
-                    Input.ResetInputAxes();
-                }
+                Input.ResetInputAxes();
             }
 
+            if (showAvatarMenu)
+            {
+                AvatarWindowRect = new Rect(20, 100, 250, 400);
+
+                if (GUI.Button(new Rect(0, 0, Screen.width, Screen.height), string.Empty, GUIStyle.none) &&
+                    !AvatarWindowRect.Contains(Input.mousePosition) || Input.GetKeyDown(KeyCode.Escape))
+                {
+                    showAvatarMenu = false;
+                    ResetCursor();
+                }
+
+                if (PlayerModel.localModel)
+                    GUI.enabled = PlayerModel.localModel.playerModelLoaded;
+                else
+                    GUI.enabled = true;
+
+                GUI.Box(AvatarWindowRect, GUIContent.none);
+                GUILayout.Window(AvatarWindowId, AvatarWindowRect, AvatarMenuWindow, "Avatar Menu");
+
+                Input.ResetInputAxes();
+            }
         }
 
         private void ActionMenuWindow(int id)

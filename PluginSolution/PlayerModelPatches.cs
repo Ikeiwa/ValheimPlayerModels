@@ -103,5 +103,41 @@ namespace ValheimPlayerModels
             return true;
         }
     }
+
+    [HarmonyPatch(typeof(Character), "SetVisible")]
+    static class Patch_Character_SetVisible
+    {
+        [HarmonyPostfix]
+        static void Postfix(Character __instance, bool visible)
+        {
+            if (!__instance.IsPlayer()) return;
+
+            PlayerModel playerModel;
+
+            if (!Plugin.playerModelCharacters.ContainsKey(__instance))
+            {
+                playerModel = __instance.GetVisual().transform.parent.GetComponent<PlayerModel>();
+                Plugin.playerModelCharacters.Add(__instance, playerModel);
+            }
+            else
+            {
+                playerModel = Plugin.playerModelCharacters[__instance];
+            }
+
+            if (!playerModel || playerModel.avatar == null) return;
+
+            var lodGroup = playerModel.avatar.lodGroup;
+            if (!lodGroup) return;
+
+            if (visible)
+            {
+                lodGroup.localReferencePoint = __instance.m_originalLocalRef;
+            }
+            else
+            {
+                lodGroup.localReferencePoint = new Vector3(999999f, 999999f, 999999f);
+            }
+        }
+    }
 }
 #endif
