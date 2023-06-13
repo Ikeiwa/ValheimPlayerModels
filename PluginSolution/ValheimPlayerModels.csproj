@@ -13,6 +13,15 @@
     <Product>Valheim Player Models</Product>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <TargetInstallDir Condition="'$(GameDir)' != '' and '$(TargetInstallDir)' == ''">$(GameDir)</TargetInstallDir>
+    <PublicizeLocally Condition="'$(PublicizeLocally)' == ''">false</PublicizeLocally>
+  </PropertyGroup>
+
+  <Target Name="PropertyValidation" AfterTargets="BeforeBuild">
+    <Error Text="GameDir property must be provided when PublicizeLocally is 'true'." Condition="'$(GameDir)' == '' and '$(PublicizeLocally)' == 'true'"/>
+  </Target>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;PLUGIN</DefineConstants>
   </PropertyGroup>
@@ -30,21 +39,22 @@
     <PackageReference Include="UnityEngine.Modules" Version="2020.3.33" IncludeAssets="compile" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(GameDir)' == ''">
+  <ItemGroup Condition="'$(GameDir)' == '' or '$(PublicizeLocally)' == 'false'">
     <PackageReference Include="Valheim.GameLibs" Version="*-*" IncludeAssets="compile" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(GameDir)' != ''">
-    <PackageReference Include="Krafs.Publicizer" Version="2.2.1" IncludeAssets="build"/>
-    <Reference Include="$(GameDir)\valheim_Data\Managed\*.dll" IncludeAssets="compile"/>
-    <Publicize Include="assembly_googleanalytics;assembly_guiutils;assembly_lux;assembly_postprocessing;assembly_simplemeshcombine;assembly_steamworks;assembly_sunshafts;assembly_utils;assembly_valheim"/> 
+  <ItemGroup Condition="'$(GameDir)' != '' and '$(PublicizeLocally)' == 'true'">
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+    <Reference Include="$(GameDir)\valheim_Data\Managed\*.dll" IncludeAssets="compile" Publicize="true"/>
   </ItemGroup>
+
+
   
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(ConfigurationName) == SDK (&#xD;&#xA; copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\UnitySDK\ValheimPlayerModelsSDK\&quot; /y&#xD;&#xA;) ELSE (&#xD;&#xA; echo Edit the Post-build event to export the plugin in your game folder&#xD;&#xA; copy &quot;$(TargetPath)&quot; &quot;F:\Steam\steamapps\common\Valheim\BepInEx\plugins\$(TargetFileName)&quot; /y&#xD;&#xA; if $(ConfigurationName) == Debug (&#xD;&#xA;  copy &quot;$(TargetPath)&quot; &quot;F:\Steam\steamapps\common\Valheim\BepInEx\plugins\$(TargetName).pdb&quot; /y&#xD;&#xA; )&#xD;&#xA;)" />
+    <Exec Command="if $(ConfigurationName) == SDK (&#xD;&#xA; copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\UnitySDK\ValheimPlayerModelsSDK\&quot; /y&#xD;&#xA;) ELSE (&#xD;&#xA; echo Edit the Post-build event to export the plugin in your game folder&#xD;&#xA; copy &quot;$(TargetPath)&quot; &quot;$(TargetInstallDir)\BepInEx\plugins\$(TargetFileName)&quot; /y&#xD;&#xA; if $(ConfigurationName) == Debug (&#xD;&#xA;  copy &quot;$(TargetPath)&quot; &quot;$(TargetInstallDir)\BepInEx\plugins\$(TargetName).pdb&quot; /y&#xD;&#xA; )&#xD;&#xA;)" />
   </Target>
 </Project>
