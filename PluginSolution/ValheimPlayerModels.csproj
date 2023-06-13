@@ -25,10 +25,19 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="BepInEx.Core" Version="5.4.19" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
     <PackageReference Include="UnityEngine.Modules" Version="2020.3.33" IncludeAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GameDir)' == ''">
     <PackageReference Include="Valheim.GameLibs" Version="*-*" IncludeAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GameDir)' != ''">
+    <PackageReference Include="Krafs.Publicizer" Version="2.2.1" IncludeAssets="build"/>
+    <Reference Include="$(GameDir)\valheim_Data\Managed\*.dll" IncludeAssets="compile"/>
+    <Publicize Include="assembly_googleanalytics;assembly_guiutils;assembly_lux;assembly_postprocessing;assembly_simplemeshcombine;assembly_steamworks;assembly_sunshafts;assembly_utils;assembly_valheim"/> 
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
