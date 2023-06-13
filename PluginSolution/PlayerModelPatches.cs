@@ -46,7 +46,7 @@ namespace ValheimPlayerModels
                     {
                         PlayerModel[] playerModels = Object.FindObjectsOfType<PlayerModel>();
                         PlayerModel player = playerModels.FirstOrDefault(p =>
-                            p.player.GetZDOID().m_userID == __instance.m_nview.m_zdo.m_uid.m_userID);
+                            p.player.GetZDOID().UserID == __instance.m_nview.m_zdo.m_uid.UserID);
 
                         if (player) player.SetupRagdoll(__instance);
                     }

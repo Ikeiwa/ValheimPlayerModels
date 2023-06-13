@@ -233,7 +233,7 @@ namespace ValheimPlayerModels
                         {
                             List<ZNet.PlayerInfo> playerList = ZNet.instance.GetPlayerList();
                             int playerIndex =
-                                playerList.FindIndex(p => p.m_characterID.userID == zNetView.m_zdo.m_uid.userID);
+                                playerList.FindIndex(p => p.m_characterID.UserID == zNetView.m_zdo.m_uid.UserID);
                             if (playerIndex != -1)
                             {
                                 playerId = playerList[playerIndex].m_host;
