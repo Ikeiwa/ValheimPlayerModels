@@ -53,7 +53,7 @@ namespace ValheimPlayerModels
             private Vector3 m_currentTail;
 
             private readonly float m_length;
-            private Vector3 m_localDir;
+            //private Vector3 m_localDir;
             private Vector3 m_prevTail;
 
             public SpringBoneLogic(Transform center, Transform transform, Vector3 localChildPosition)
